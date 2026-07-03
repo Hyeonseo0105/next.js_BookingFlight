@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------------------------------------------------------------------------
+// Core models — minimal surface, designed for extension
+// ---------------------------------------------------------------------------
+
+model User {
+  id                   String                @id @default(cuid())
+  email                String                @unique
+  name                 String?
+  password             String?
+  createdAt            DateTime              @default(now())
+  reservations         Reservation[]
+  priceAlerts          PriceAlert[]
+  plannerConversations PlannerConversation[]
+}
+
+model Flight {
+  id                 String               @id          // e.g. "fl-001"
+  airline            String
+  from               String                            // "Seoul (ICN)"
+  fromCode           String                            // "ICN"
+  to                 String                            // "Tokyo (HND)"
+  toCode             String                            // "HND"
+  toKr               String  @default("")              // "도쿄 (HND)"
+  departureTime      String                            // "07:35"
+  arrivalTime        String                            // "09:50"
+  duration           String                            // "2h 15m"
+  price              Int
+  createdAt          DateTime             @default(now())
+  reservations       Reservation[]
+  returnReservations Reservation[]        @relation("ReturnFlight")
+  seats              Seat[]
+  priceHistory       FlightPriceHistory[]
+  priceAlerts        PriceAlert[]
+}
+
+model FlightPriceHistory {
+  id         String   @id @default(cuid())
+  flightId   String
+  flight     Flight   @relation(fields: [flightId], references: [id])
+  price      Int
+  recordedAt DateTime
+
+  @@index([flightId, recordedAt])
+}
+
+model Seat {
+  id              String           @id @default(cuid())
+  flightId        String
+  flight          Flight           @relation(fields: [flightId], references: [id])
+  seatNumber      String                      // "12A"
+  class           String           @default("ECONOMY")    // ECONOMY | BUSINESS
+  status          String           @default("AVAILABLE")  // AVAILABLE | RESERVED
+  priceModifier   Int              @default(0)            // extra cost on top of base fare
+  row             Int
+  column          String                      // "A" | "B" | "C" | "D" | "E" | "F"
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  reservationSeat ReservationSeat?
+
+  @@unique([flightId, seatNumber])
+}
+
+model Reservation {
+  id               String            @id @default(cuid())
+  bookingRef       String            @unique
+  flightId         String
+  flight           Flight            @relation(fields: [flightId], references: [id])
+  tripType         String            @default("ONE_WAY")   // ONE_WAY | ROUND_TRIP
+  returnFlightId   String?
+  returnFlight     Flight?           @relation("ReturnFlight", fields: [returnFlightId], references: [id])
+  userId           String?
+  user             User?             @relation(fields: [userId], references: [id])
+  departureDate    String                                  // "2026-07-15"
+  returnDate       String?                                 // "2026-07-22" (왕복 시)
+  travelers        Int               @default(1)
+  totalPrice       Int
+  status           String            @default("CONFIRMED") // CONFIRMED | COMPLETED | CANCELLED
+  contactEmail     String
+  contactPhone     String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  passengers       Passenger[]
+  reservationSeats ReservationSeat[]
+}
+
+model Passenger {
+  id              String           @id @default(cuid())
+  reservationId   String
+  reservation     Reservation      @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  firstName       String
+  lastName        String
+  dateOfBirth     String
+  nationality     String
+  passport        String
+  reservationSeat ReservationSeat?
+}
+
+model PriceAlert {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  flightId    String
+  flight      Flight    @relation(fields: [flightId], references: [id])
+  targetPrice Int
+  triggered   Boolean   @default(false)
+  triggeredAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, flightId])
+}
+
+model PlannerConversation {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  destination String                     // e.g. "Fukuoka (FUK)"
+  summary     String                     // AI가 제시한 추천 이유 텍스트
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model ReservationSeat {
+  id            String      @id @default(cuid())
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  seatId        String      @unique
+  seat          Seat        @relation(fields: [seatId], references: [id])
+  passengerId   String?     @unique
+  passenger     Passenger?  @relation(fields: [passengerId], references: [id])
+}
