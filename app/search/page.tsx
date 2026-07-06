@@ -135,6 +135,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 								<div className="flex items-center gap-3">
 									<span className="text-sm font-semibold">${selectedOutbound.price} / person</span>
 									<Link
+										href={`/reservation?flightId=${selectedOutbound.id}&tripType=ONE_WAY&departureDate=${departureDate}&travelers=${travelers || '1'}`}
+										className={buttonVariants({ size: 'sm', variant: 'outline' })}
+									>
+										Book one-way instead
+									</Link>
+									<Link
 										href={buildHref(baseParams, { page: '1' })}
 										className={buttonVariants({ size: 'sm', variant: 'outline' })}
 									>
@@ -195,7 +201,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 							<div className="rounded-lg border border-dashed p-8 text-center">
 								<p className="text-sm font-medium">No matching flights</p>
 								<p className="mt-2 text-sm text-muted-foreground">
-									Try a broader origin or destination query.
+									{isRoundTrip && outboundFlightId
+										? 'This route has no return flights yet. Use "Book one-way instead" above to continue.'
+										: 'Try a broader origin or destination query.'}
 								</p>
 							</div>
 						)}
