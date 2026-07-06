@@ -43,16 +43,22 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 							{user ? (
 								<>
 									<Link
-										className={buttonVariants({ size: 'sm', variant: 'ghost' })}
+										className={buttonVariants({
+											className: 'max-w-[40vw] sm:max-w-none',
+											size: 'sm',
+											variant: 'ghost',
+										})}
 										href="/mypage"
 									>
-										<User aria-hidden="true" className="size-4" />
-										{user.email}
+										<User aria-hidden="true" className="size-4 shrink-0" />
+										<span className="hidden truncate sm:inline">
+											{user.email}
+										</span>
 									</Link>
 									<form action={logout}>
 										<Button size="sm" type="submit" variant="ghost">
 											<LogOut aria-hidden="true" className="size-4" />
-											Logout
+											<span className="hidden sm:inline">Logout</span>
 										</Button>
 									</form>
 								</>
